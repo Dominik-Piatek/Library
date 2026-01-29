@@ -8,8 +8,6 @@ import javax.swing.*;
 
 public class App {
     public static void main(String[] args) {
-        // Initialize Database
-        DatabaseInitializer.initialize();
 
         // Setup UI Look and Feel
         try {
