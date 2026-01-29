@@ -13,7 +13,7 @@ public class PracownikDAO {
     public Optional<Pracownik> authenticate(String login, String passwordHash) {
         String sql = "SELECT * FROM Pracownik WHERE Login = ? AND Haslo_skrot = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, login);
             pstmt.setString(2, passwordHash);
             ResultSet rs = pstmt.executeQuery();
@@ -27,15 +27,14 @@ public class PracownikDAO {
     }
 
     public void addPracownik(Pracownik pracownik) {
-        String sql = "INSERT INTO Pracownik(Imie, Nazwisko, Login, Haslo_skrot, Rola, ID_Administratora) VALUES(?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO Pracownik(Imie, Nazwisko, Login, Haslo_skrot, Rola) VALUES(?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, pracownik.getImie());
             pstmt.setString(2, pracownik.getNazwisko());
             pstmt.setString(3, pracownik.getLogin());
             pstmt.setString(4, pracownik.getHasloSkrot());
             pstmt.setString(5, pracownik.getRola());
-            pstmt.setInt(6, pracownik.getIdAdministratora());
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -46,8 +45,8 @@ public class PracownikDAO {
         List<Pracownik> list = new ArrayList<>();
         String sql = "SELECT * FROM Pracownik";
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
                 list.add(mapResultSetToPracownik(rs));
             }
@@ -64,14 +63,14 @@ public class PracownikDAO {
                 rs.getString("Nazwisko"),
                 rs.getString("Login"),
                 rs.getString("Haslo_skrot"),
-                rs.getString("Rola"),
-                rs.getInt("ID_Administratora"));
+                rs.getString("Rola")
+        );
     }
 
     public void updatePracownik(Pracownik pracownik) {
         String sql = "UPDATE Pracownik SET Imie=?, Nazwisko=?, Login=?, Haslo_skrot=?, Rola=? WHERE ID_Pracownika=?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, pracownik.getImie());
             pstmt.setString(2, pracownik.getNazwisko());
             pstmt.setString(3, pracownik.getLogin());
