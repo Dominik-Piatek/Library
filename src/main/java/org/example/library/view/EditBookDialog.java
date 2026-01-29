@@ -126,7 +126,7 @@ public class EditBookDialog extends JDialog {
     }
 
     private void openEditCopiesDialog() {
-        JOptionPane.showMessageDialog(this, "Funkcjonalność edycji egzemplarzy zostanie dodana później.");
+        new CopyManagementDialog(this, originalIsbn).setVisible(true);
     }
 
     private JPanel createLabeledField(String labelText, JComponent field) {

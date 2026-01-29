@@ -28,7 +28,8 @@ public class KsiazkaDAO {
         }
     }
 
-    public void addEgzemplarz(Egzemplarz egzemplarz) {
+    public boolean addEgzemplarz(Egzemplarz egzemplarz) {
+        // Updated column name to KsiazkaISBN (ASCII)
         String sql = "INSERT INTO Egzemplarz(Kod_kreskowy, Lokalizacja_Regal, Lokalizacja_Polka, Status_wypozyczenia, KsiazkaISBN) VALUES(?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -38,8 +39,10 @@ public class KsiazkaDAO {
             pstmt.setString(4, egzemplarz.getStatusWypozyczenia());
             pstmt.setString(5, egzemplarz.getKsiazkaIsbn());
             pstmt.executeUpdate();
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 
@@ -67,6 +70,7 @@ public class KsiazkaDAO {
 
     public List<Egzemplarz> getEgzemplarzeByIsbn(String isbn) {
         List<Egzemplarz> list = new ArrayList<>();
+        // Updated column name to KsiazkaISBN (ASCII)
         String sql = "SELECT * FROM Egzemplarz WHERE KsiazkaISBN = ?";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -114,6 +118,31 @@ public class KsiazkaDAO {
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, status);
             pstmt.setInt(2, id);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateEgzemplarz(Egzemplarz egzemplarz) {
+        String sql = "UPDATE Egzemplarz SET Lokalizacja_Regal = ?, Lokalizacja_Polka = ?, Status_wypozyczenia = ? WHERE ID_Egzemplarza = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, egzemplarz.getLokalizacjaRegal());
+            pstmt.setInt(2, egzemplarz.getLokalizacjaPolka());
+            pstmt.setString(3, egzemplarz.getStatusWypozyczenia());
+            pstmt.setInt(4, egzemplarz.getId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteEgzemplarz(int id) {
+        String sql = "DELETE FROM Egzemplarz WHERE ID_Egzemplarza = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

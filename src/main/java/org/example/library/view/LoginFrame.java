@@ -1,8 +1,5 @@
 package org.example.library.view;
 
-import org.example.library.dao.CzytelnikDAO;
-import org.example.library.model.Czytelnik;
-
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -11,7 +8,6 @@ public class LoginFrame extends JFrame {
     private JTextField loginField;
     private JPasswordField passwordField;
     private JButton loginButton;
-    private JButton registerButton;
 
     public LoginFrame() {
         setTitle("System Biblioteczny - Autoryzacja");
@@ -62,18 +58,6 @@ public class LoginFrame extends JFrame {
         loginButton.setMaximumSize(new Dimension(150, 40));
         loginPanel.add(loginButton);
 
-        // Opcjonalnie: Przycisk rejestracji (dla czytelników)
-        loginPanel.add(Box.createRigidArea(new Dimension(0, 15)));
-        registerButton = new JButton("Załóż konto");
-        registerButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        registerButton.setBorderPainted(false);
-        registerButton.setContentAreaFilled(false);
-        registerButton.setForeground(Color.BLUE);
-        registerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        registerButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        registerButton.addActionListener(e -> showRegistrationDialog());
-        loginPanel.add(registerButton);
-
         // Dodanie panelu do okna
         add(loginPanel);
     }
@@ -95,57 +79,8 @@ public class LoginFrame extends JFrame {
         return panel;
     }
 
-    // --- Okno rejestracji (dla czytelnika) ---
-    private void showRegistrationDialog() {
-        JDialog dialog = new JDialog(this, "Rejestracja", true);
-        dialog.setLayout(new GridLayout(6, 2, 10, 10));
-        dialog.setSize(350, 300);
-        dialog.setLocationRelativeTo(this);
-
-        JTextField nameField = new JTextField();
-        JTextField surnameField = new JTextField();
-        JTextField phoneField = new JTextField();
-        JTextField emailField = new JTextField();
-        JPasswordField passField = new JPasswordField();
-
-        dialog.add(new JLabel("  Imię:")); dialog.add(nameField);
-        dialog.add(new JLabel("  Nazwisko:")); dialog.add(surnameField);
-        dialog.add(new JLabel("  Telefon:")); dialog.add(phoneField);
-        dialog.add(new JLabel("  Email:")); dialog.add(emailField);
-        dialog.add(new JLabel("  Hasło:")); dialog.add(passField);
-
-        JButton submitButton = new JButton("Zarejestruj");
-        submitButton.addActionListener(ev -> {
-            try {
-                if (emailField.getText().isEmpty() || new String(passField.getPassword()).isEmpty()) {
-                    JOptionPane.showMessageDialog(dialog, "Email i hasło są wymagane!");
-                    return;
-                }
-                CzytelnikDAO dao = new CzytelnikDAO();
-                Czytelnik c = new Czytelnik(
-                        nameField.getText(),
-                        surnameField.getText(),
-                        phoneField.getText(),
-                        emailField.getText(),
-                        new String(passField.getPassword()),
-                        1 // Domyślne ID pracownika tworzącego konto (np. system/admin)
-                );
-                dao.addCzytelnik(c);
-                JOptionPane.showMessageDialog(dialog, "Konto utworzone! Możesz się zalogować.");
-                dialog.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Błąd: " + ex.getMessage());
-            }
-        });
-
-        dialog.add(new JLabel(""));
-        dialog.add(submitButton);
-        dialog.setVisible(true);
-    }
-
     // --- Gettery dla Kontrolera ---
     public JTextField getLoginField() { return loginField; }
     public JPasswordField getPasswordField() { return passwordField; }
     public JButton getLoginButton() { return loginButton; }
-    public JButton getRegisterButton() { return registerButton; }
 }

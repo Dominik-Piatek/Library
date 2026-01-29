@@ -55,7 +55,7 @@ public class EmployeeManagementPanel extends JPanel {
         bottomPanel.setBackground(Color.WHITE);
         bottomPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        JButton backButton = new JButton("Powrót do menu główne...");
+        JButton backButton = new JButton("Powrót do menu głównego");
         backButton.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         backButton.setFocusPainted(false);
         backButton.addActionListener(e -> closeWindow());

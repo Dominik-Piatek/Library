@@ -9,7 +9,8 @@ import java.util.List;
 public class RezerwacjaDAO {
 
     public void addRezerwacja(int czytelnikId, String isbn) {
-        String sql = "INSERT INTO Rezerwacja(Data_rezerwacji, CzytelnikID_Czytelnika, KsiazkaISBN) VALUES(?, ?, ?)";
+        // Updated column name to KsiążkaISBN
+        String sql = "INSERT INTO Rezerwacja(Data_rezerwacji, CzytelnikID_Czytelnika, KsiążkaISBN) VALUES(?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             // Changed setLong to setDate for MySQL compatibility
@@ -23,7 +24,8 @@ public class RezerwacjaDAO {
     }
 
     public boolean hasActiveReservation(int czytelnikId, String isbn) {
-        String sql = "SELECT 1 FROM Rezerwacja WHERE CzytelnikID_Czytelnika = ? AND KsiazkaISBN = ? AND Status = 'Aktywna'";
+        // Updated column name to KsiążkaISBN
+        String sql = "SELECT 1 FROM Rezerwacja WHERE CzytelnikID_Czytelnika = ? AND KsiążkaISBN = ? AND Status = 'Aktywna'";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, czytelnikId);
@@ -47,7 +49,7 @@ public class RezerwacjaDAO {
                         rs.getInt("ID_Rezerwacji"),
                         rs.getDate("Data_rezerwacji"),
                         rs.getInt("CzytelnikID_Czytelnika"),
-                        rs.getString("KsiazkaISBN"),
+                        rs.getString("KsiążkaISBN"),
                         rs.getString("Status")));
             }
         } catch (SQLException e) {

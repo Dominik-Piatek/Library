@@ -21,8 +21,6 @@ public class DatabaseInitializer {
                                         "FOREIGN KEY(ID_Administratora) REFERENCES Pracownik(ID_Pracownika))");
 
                         // Czytelnik (Readers)
-                        // Updated column names to match CzytelnikDAO: Imie -> Imię, Email -> `E-mail`
-                        // Removed PracownikID_Pracownika as it is not used in CzytelnikDAO
                         stmt.execute("CREATE TABLE IF NOT EXISTS Czytelnik (" +
                                         "ID_Czytelnika INTEGER PRIMARY KEY AUTO_INCREMENT, " +
                                         "`Imię` VARCHAR(255) NOT NULL, " +
@@ -52,6 +50,14 @@ public class DatabaseInitializer {
                                         "KsiazkaISBN VARCHAR(20) NOT NULL, " +
                                         "FOREIGN KEY(KsiazkaISBN) REFERENCES Ksiazka(ISBN))");
 
+                        // Attempt to migrate column name if it exists in Polish
+                        try {
+                            stmt.execute("ALTER TABLE Egzemplarz CHANGE `KsiążkaISBN` KsiazkaISBN VARCHAR(20) NOT NULL");
+                            System.out.println("Migrated Egzemplarz column KsiążkaISBN to KsiazkaISBN");
+                        } catch (SQLException e) {
+                            // Ignore if column doesn't exist or already renamed
+                        }
+
                         // Wypozyczenie (Loans)
                         stmt.execute("CREATE TABLE IF NOT EXISTS Wypozyczenie (" +
                                         "ID_Wypozyczenia INTEGER PRIMARY KEY AUTO_INCREMENT, " +
@@ -76,6 +82,14 @@ public class DatabaseInitializer {
                                         "Status VARCHAR(50) DEFAULT 'Aktywna', " +
                                         "FOREIGN KEY(CzytelnikID_Czytelnika) REFERENCES Czytelnik(ID_Czytelnika), " +
                                         "FOREIGN KEY(KsiazkaISBN) REFERENCES Ksiazka(ISBN))");
+
+                        // Attempt to migrate column name in Rezerwacja too
+                        try {
+                            stmt.execute("ALTER TABLE Rezerwacja CHANGE `KsiążkaISBN` KsiazkaISBN VARCHAR(20) NOT NULL");
+                            System.out.println("Migrated Rezerwacja column KsiążkaISBN to KsiazkaISBN");
+                        } catch (SQLException e) {
+                            // Ignore
+                        }
 
                         // Default Admin
                         try (java.sql.ResultSet rs = stmt.executeQuery("SELECT count(*) FROM Pracownik")) {
