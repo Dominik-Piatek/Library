@@ -9,6 +9,9 @@ import javax.swing.*;
 public class App {
     public static void main(String[] args) {
 
+        // Initialize Database (Create tables if not exist)
+        DatabaseInitializer.initialize();
+
         // Setup UI Look and Feel
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());

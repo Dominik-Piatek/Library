@@ -12,7 +12,8 @@ public class RezerwacjaDAO {
         String sql = "INSERT INTO Rezerwacja(Data_rezerwacji, CzytelnikID_Czytelnika, KsiazkaISBN) VALUES(?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setLong(1, System.currentTimeMillis());
+            // Changed setLong to setDate for MySQL compatibility
+            pstmt.setDate(1, new java.sql.Date(System.currentTimeMillis()));
             pstmt.setInt(2, czytelnikId);
             pstmt.setString(3, isbn);
             pstmt.executeUpdate();
@@ -36,13 +37,7 @@ public class RezerwacjaDAO {
 
     public List<org.example.library.model.Rezerwacja> getAllReservations() {
         List<org.example.library.model.Rezerwacja> list = new java.util.ArrayList<>();
-        String sql = "SELECT * FROM Rezerwacja"; // Assuming table has ID_Rezerwacji, Status, etc.
-        // Actually, DatabaseInitializer created:
-        // ID_Rezerwacji INTEGER DOMAIN KEY AUTOINCREMENT,
-        // Data_rezerwacji DATE,
-        // Status TEXT DEFAULT 'Aktywna',
-        // CzytelnikID_Czytelnika INTEGER,
-        // KsiazkaISBN TEXT
+        String sql = "SELECT * FROM Rezerwacja"; 
 
         try (Connection conn = DatabaseConnection.getConnection();
                 Statement stmt = conn.createStatement();

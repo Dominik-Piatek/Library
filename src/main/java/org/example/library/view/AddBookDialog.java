@@ -1,13 +1,11 @@
 package org.example.library.view;
 
 import org.example.library.dao.KsiazkaDAO;
-import org.example.library.model.Egzemplarz;
 import org.example.library.model.Ksiazka;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.util.UUID;
 
 public class AddBookDialog extends JDialog {
 
@@ -15,12 +13,12 @@ public class AddBookDialog extends JDialog {
     private JTextField authorField;
     private JTextField isbnField;
     private JTextField yearField;
-    private JTextField rackField; // Regał
-    private JTextField shelfField; // Półka
+    private JTextField genreField; // Gatunek
+    private JTextField categoryField; // Dziedzina
 
-    public AddBookDialog(Frame owner) {
-        super(owner, "Dodaj książkę", true);
-        setSize(500, 500);
+    public AddBookDialog(Window owner) {
+        super(owner, "Dodaj książkę", ModalityType.APPLICATION_MODAL);
+        setSize(500, 550); // Increased height slightly
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
@@ -32,7 +30,7 @@ public class AddBookDialog extends JDialog {
 
         // Tytuł formularza
         JLabel titleLabel = new JLabel("Dodaj książkę:");
-        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 24)); // Styl "Comic Sans" z makiety
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 24));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         mainPanel.add(titleLabel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
@@ -50,10 +48,10 @@ public class AddBookDialog extends JDialog {
         mainPanel.add(createLabeledField("Rok wydania", yearField = new JTextField()));
         mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        mainPanel.add(createLabeledField("Regał", rackField = new JTextField()));
+        mainPanel.add(createLabeledField("Gatunek", genreField = new JTextField()));
         mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        mainPanel.add(createLabeledField("Półka", shelfField = new JTextField()));
+        mainPanel.add(createLabeledField("Dziedzina", categoryField = new JTextField()));
         mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
         // Przyciski
@@ -99,7 +97,6 @@ public class AddBookDialog extends JDialog {
     }
 
     private void saveBook() {
-        // Walidacja
         if (titleField.getText().isEmpty() || isbnField.getText().isEmpty() || yearField.getText().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Wypełnij wymagane pola (Tytuł, ISBN, Rok)!");
             return;
@@ -107,41 +104,25 @@ public class AddBookDialog extends JDialog {
 
         try {
             int year = Integer.parseInt(yearField.getText());
-            int rack = Integer.parseInt(rackField.getText().isEmpty() ? "0" : rackField.getText());
-            int shelf = Integer.parseInt(shelfField.getText().isEmpty() ? "0" : shelfField.getText());
-
+            
             KsiazkaDAO dao = new KsiazkaDAO();
 
-            // 1. Tworzymy książkę
-            // Uwaga: Makieta nie ma pola "Gatunek" i "Dziedzina", więc wpisujemy domyślne "Inne"
             Ksiazka k = new Ksiazka(
                     isbnField.getText(),
                     titleField.getText(),
                     authorField.getText(),
-                    "Inne", // Domyślny gatunek
+                    genreField.getText(),
                     year,
-                    "Inne", // Domyślna dziedzina
-                    1 // ID Administratora (hardcoded dla MVP)
+                    categoryField.getText(),
+                    1 // Default PracownikID (should be logged in user ideally, but 1 is safe for now)
             );
             dao.addKsiazka(k);
 
-            // 2. Tworzymy pierwszy egzemplarz tej książki (skoro podajemy regał i półkę)
-            // Generujemy unikalny kod kreskowy
-            String barcode = "CODE-" + System.currentTimeMillis();
-            Egzemplarz e = new Egzemplarz(
-                    barcode,
-                    rack,
-                    shelf,
-                    "Dostępna",
-                    isbnField.getText()
-            );
-            dao.addEgzemplarz(e);
-
-            JOptionPane.showMessageDialog(this, "Książka i egzemplarz dodane pomyślnie!");
+            JOptionPane.showMessageDialog(this, "Książka dodana pomyślnie!");
             dispose();
 
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Rok, Regał i Półka muszą być liczbami!", "Błąd", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Rok musi być liczbą!", "Błąd", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, "Błąd bazy danych: " + e.getMessage(), "Błąd", JOptionPane.ERROR_MESSAGE);
         }

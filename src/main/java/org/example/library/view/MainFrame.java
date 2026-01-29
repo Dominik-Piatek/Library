@@ -1,74 +1,59 @@
 package org.example.library.view;
 
-import org.example.library.model.Pracownik;
+import org.example.library.model.Czytelnik;
+import org.example.library.model.Uzytkownik;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class MainFrame extends JFrame {
-    private Pracownik currentUser;
 
-    public MainFrame(Pracownik user) {
-        this.currentUser = user;
-        setTitle("System Biblioteczny - " + user.getImie() + " " + user.getNazwisko() + " [" + user.getRola() + "]");
-        setSize(800, 600);
+    public MainFrame(Uzytkownik currentUser) {
+        // Podstawowe ustawienia okna
+        setTitle("System Biblioteczny - Zalogowany: " + currentUser.getLogin() + " (" + currentUser.getRola() + ")");
+        setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        initComponents();
-    }
-
-    private void initComponents() {
-        setLayout(new BorderLayout());
-
-        // Header
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        headerPanel.add(new JLabel("Witaj, " + currentUser.getImie()), BorderLayout.WEST);
-
-        JButton logoutButton = new JButton("Wyloguj");
-        logoutButton.addActionListener(e -> logout());
-        headerPanel.add(logoutButton, BorderLayout.EAST);
-
-        add(headerPanel, BorderLayout.NORTH);
-
-        // Menu Bar
-        JMenuBar menuBar = new JMenuBar();
-        JMenu accountMenu = new JMenu("Konto");
-        JMenuItem editItem = new JMenuItem("Edytuj dane");
-        editItem.addActionListener(e -> new EditEmployeeProfileDialog(this, currentUser).setVisible(true));
-        accountMenu.add(editItem);
-        menuBar.add(accountMenu);
-        setJMenuBar(menuBar);
-
-        // Content Area
+        // Panel główny z CardLayout
         JPanel contentPanel = new JPanel(new CardLayout());
 
-        if ("Administrator".equalsIgnoreCase(currentUser.getRola())) {
+        String rola = currentUser.getRola();
+
+        // --- LOGIKA WYBORU EKRANU ---
+
+        // 1. ADMIN / MANAGER / ADMINISTRATOR
+        if ("Manager".equalsIgnoreCase(rola) ||
+                "Admin".equalsIgnoreCase(rola) ||
+                "Administrator".equalsIgnoreCase(rola)) {
+
+            // ZMIANA: Zamiast JTabbedPane, wywołujemy Twój AdminPanel
             contentPanel.add(new AdminPanel(), "Admin");
-        } else if ("Kierownik".equalsIgnoreCase(currentUser.getRola())) {
-            // Manager gets a special panel with ALL features
-            JTabbedPane managerPane = new JTabbedPane();
-            managerPane.addTab("Książki", new BookManagementPanel());
-            managerPane.addTab("Pracownicy", new EmployeeManagementPanel());
-            managerPane.addTab("Czytelnicy", new ReaderManagementPanel(currentUser.getId()));
-            managerPane.addTab("Wypożyczenia", new LoanPanel(currentUser.getId()));
-            contentPanel.add(managerPane, "Manager");
-        } else if ("Bibliotekarz".equalsIgnoreCase(currentUser.getRola())) {
-            contentPanel.add(new LibrarianPanel(), "Librarian");
-        } else {
-            contentPanel.add(new JLabel("Rola nierozpoznana"), "Error");
         }
 
-        add(contentPanel, BorderLayout.CENTER);
-    }
+        // 2. BIBLIOTEKARZ
+        else if ("Bibliotekarz".equalsIgnoreCase(rola)) {
+            contentPanel.add(new LibrarianPanel(currentUser.getId()), "Librarian");
+        }
 
-    private void logout() {
-        dispose();
-        SwingUtilities.invokeLater(() -> {
-            LoginFrame loginFrame = new LoginFrame();
-            new org.example.library.controller.LoginController(loginFrame);
-            loginFrame.setVisible(true);
-        });
+        // 3. CZYTELNIK
+        else if ("Czytelnik".equalsIgnoreCase(rola)) {
+            if (currentUser instanceof Czytelnik) {
+                contentPanel.add(new ReaderPanel((Czytelnik) currentUser), "Reader");
+            } else {
+                JPanel errorPanel = new JPanel();
+                errorPanel.add(new JLabel("Błąd danych czytelnika."));
+                contentPanel.add(errorPanel, "Error");
+            }
+        }
+
+        // 4. ROLA NIEZNANA
+        else {
+            JPanel errorPanel = new JPanel();
+            errorPanel.add(new JLabel("Nie rozpoznano roli: " + rola));
+            contentPanel.add(errorPanel, "Unknown");
+        }
+
+        add(contentPanel);
     }
 }

@@ -1,220 +1,118 @@
 package org.example.library.view;
 
-import org.example.library.dao.KsiazkaDAO;
-import org.example.library.dao.RezerwacjaDAO;
-import org.example.library.model.Ksiazka;
-import org.example.library.model.Rezerwacja;
+import org.example.library.controller.LoginController;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellEditor;
-import javax.swing.table.TableCellRenderer;
 import java.awt.*;
-import java.util.List;
 
 public class LibrarianPanel extends JPanel {
-    private KsiazkaDAO ksiazkaDAO;
-    private RezerwacjaDAO rezerwacjaDAO;
 
-    public LibrarianPanel() {
-        this.ksiazkaDAO = new KsiazkaDAO();
-        this.rezerwacjaDAO = new RezerwacjaDAO();
+    private int librarianId; // ID zalogowanego bibliotekarza
 
-        setLayout(new BorderLayout());
-        add(new JLabel("Panel Bibliotekarza", SwingConstants.CENTER), BorderLayout.NORTH);
+    // Konstruktor przyjmuje ID bibliotekarza
+    public LibrarianPanel(int librarianId) {
+        this.librarianId = librarianId;
 
-        JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Czytelnicy", new ReaderManagementPanel(1)); // Default admin ID
-        tabbedPane.addTab("Wypożyczenia", new LoanPanel(1));
-        tabbedPane.addTab("Książki", createBookPanel());
-        tabbedPane.addTab("Zgłoszenia (Rezerwacje)", createReservationPanel());
+        // Główny layout (centrowanie na ekranie)
+        setLayout(new GridBagLayout());
+        setBackground(Color.WHITE);
 
-        add(tabbedPane, BorderLayout.CENTER);
+        // Konfiguracja rozciągania
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(30, 30, 30, 30);
+
+        // --- SZARY KONTENER MENU ---
+        JPanel menuPanel = new JPanel();
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+        menuPanel.setBackground(new Color(230, 230, 230)); // Jasnoszary
+        menuPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.BLACK, 1),
+                BorderFactory.createEmptyBorder(40, 40, 40, 40)
+        ));
+
+        // Tytuł
+        JLabel titleLabel = new JLabel("Menu bibliotekarza");
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 32));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        menuPanel.add(Box.createVerticalGlue());
+        menuPanel.add(titleLabel);
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 40)));
+
+        // --- PRZYCISKI ---
+
+        // 1. Utwórz konto czytelnika
+        menuPanel.add(createMenuButton("Utwórz konto czytelnika", e -> showCreateReaderDialog()));
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // 2. Wypożycz książkę (Przekazujemy ID do LoanPanel)
+        menuPanel.add(createMenuButton("Wypożycz książkę", e -> showLoanDialog()));
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // 3. Zarejestruj zwrot (Otwiera ReturnBookDialog)
+        menuPanel.add(createMenuButton("Zarejestruj zwrot", e -> showReturnDialog()));
+        menuPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // 4. Wyloguj
+        menuPanel.add(createMenuButton("Wyloguj", e -> performLogout()));
+
+        menuPanel.add(Box.createVerticalGlue());
+
+        add(menuPanel, gbc);
     }
 
-    private JPanel createBookPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        JTable bookTable = new JTable();
-        bookTable.setRowHeight(30);
+    private JButton createMenuButton(String text, java.awt.event.ActionListener action) {
+        JButton button = new JButton(text);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setMaximumSize(new Dimension(400, 50));
+        button.setPreferredSize(new Dimension(400, 50));
+        button.setFocusPainted(false);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        button.addActionListener(action);
+        return button;
+    }
 
-        List<Ksiazka> books = ksiazkaDAO.getAllKsiazki();
-        String[] columns = { "ISBN", "Tytuł", "Autor", "Edycja", "Usuwanie" };
+    // --- AKCJE PRZYCISKÓW ---
 
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 3 || column == 4;
-            }
-        };
+    private void showCreateReaderDialog() {
+        // Otwieramy okno tworzenia konta czytelnika
+        CreateReaderDialog dialog = new CreateReaderDialog((Frame) SwingUtilities.getWindowAncestor(this));
+        dialog.setVisible(true);
+    }
 
-        for (Ksiazka b : books) {
-            model.addRow(new Object[] { b.getIsbn(), b.getTytul(), b.getAutor(), "Edytuj", "Usuń" });
+    private void showLoanDialog() {
+        // Otwieramy panel wypożyczania w oknie dialogowym
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Wypożyczanie książki", true);
+
+        // Przekazujemy ID bibliotekarza do panelu, żeby wiedział kto wypożycza
+        LoanPanel loanPanel = new LoanPanel(this.librarianId);
+
+        dialog.setContentPane(loanPanel);
+        dialog.setSize(1000, 700);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void showReturnDialog() {
+        // Otwieramy panel zwrotów
+        ReturnBookDialog dialog = new ReturnBookDialog((Frame) SwingUtilities.getWindowAncestor(this));
+        dialog.setVisible(true);
+    }
+
+    private void performLogout() {
+        Window window = SwingUtilities.getWindowAncestor(this);
+        if (window instanceof JFrame) {
+            window.dispose();
         }
-        bookTable.setModel(model);
-
-        bookTable.getColumn("Edycja").setCellRenderer(new ButtonRenderer(Color.ORANGE));
-        bookTable.getColumn("Edycja").setCellEditor(new ButtonEditor(new JCheckBox(), true, bookTable));
-
-        bookTable.getColumn("Usuwanie").setCellRenderer(new ButtonRenderer(Color.RED));
-        bookTable.getColumn("Usuwanie").setCellEditor(new ButtonEditor(new JCheckBox(), false, bookTable));
-
-        panel.add(new JScrollPane(bookTable), BorderLayout.CENTER);
-
-        JPanel controlPanel = new JPanel();
-        JButton refreshBtn = new JButton("Odśwież");
-        refreshBtn.addActionListener(e -> {
-            // quick refresh logic: recreate panel or reload model
-            // For MVP, just message
-            JOptionPane.showMessageDialog(panel, "Odświeżanie wymaga przeładowania widoku (TODO)");
+        SwingUtilities.invokeLater(() -> {
+            LoginFrame loginFrame = new LoginFrame();
+            new LoginController(loginFrame);
+            loginFrame.setVisible(true);
         });
-        controlPanel.add(refreshBtn);
-        panel.add(controlPanel, BorderLayout.SOUTH);
-
-        return panel;
-    }
-
-    private JPanel createReservationPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-
-        JTable resTable = new JTable();
-        resTable.setRowHeight(30);
-
-        List<Rezerwacja> resList = rezerwacjaDAO.getAllReservations();
-        String[] columns = { "ID", "Data", "Czytelnik ID", "ISBN", "Status", "Akcja" };
-
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 5;
-            }
-        };
-
-        for (Rezerwacja r : resList) {
-            // Only show active? Or all. Let's show all for now.
-            model.addRow(new Object[] { r.getId(), r.getDataRezerwacji(), r.getCzytelnikId(), r.getKsiazkaIsbn(),
-                    r.getStatus(), "Zrealizuj" });
-        }
-        resTable.setModel(model);
-
-        resTable.getColumn("Akcja").setCellRenderer(new ButtonRenderer(new Color(46, 204, 113)));
-        resTable.getColumn("Akcja").setCellEditor(new ReservationActionEditor(new JCheckBox(), resTable));
-
-        panel.add(new JScrollPane(resTable), BorderLayout.CENTER);
-        return panel;
-    }
-
-    // --- Helpers ---
-
-    class ButtonRenderer extends JButton implements TableCellRenderer {
-        private Color bgColor;
-
-        public ButtonRenderer(Color color) {
-            this.bgColor = color;
-            setOpaque(true);
-        }
-
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-                int row, int column) {
-            setText((value == null) ? "" : value.toString());
-            setBackground(bgColor);
-            setForeground(Color.WHITE);
-            return this;
-        }
-    }
-
-    class ButtonEditor extends DefaultCellEditor {
-        protected JButton button;
-        private String label;
-        private boolean isPushed;
-        private boolean isEdit;
-        private JTable table;
-        private int currentRow;
-
-        public ButtonEditor(JCheckBox checkBox, boolean isEdit, JTable table) {
-            super(checkBox);
-            this.isEdit = isEdit;
-            this.table = table;
-            button = new JButton();
-            button.setOpaque(true);
-            button.addActionListener(e -> fireEditingStopped());
-        }
-
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
-                int column) {
-            label = (value == null) ? "" : value.toString();
-            button.setText(label);
-            isPushed = true;
-            currentRow = row;
-            return button;
-        }
-
-        public Object getCellEditorValue() {
-            if (isPushed) {
-                String isbn = (String) table.getValueAt(currentRow, 0);
-                if (isEdit) {
-                    JOptionPane.showMessageDialog(button,
-                            "Edycja książki ISBN: " + isbn + " (Funkcja w przygotowaniu)");
-                    // Open Edit Dialog Logic (TODO)
-                } else {
-                    int confirm = JOptionPane.showConfirmDialog(button,
-                            "Czy na pewno usunąć książkę ISBN: " + isbn + "?");
-                    if (confirm == JOptionPane.YES_OPTION) {
-                        ksiazkaDAO.deleteKsiazka(isbn);
-                        ((DefaultTableModel) table.getModel()).removeRow(currentRow);
-                    }
-                }
-            }
-            isPushed = false;
-            return label;
-        }
-
-        public boolean stopCellEditing() {
-            isPushed = false;
-            return super.stopCellEditing();
-        }
-    }
-
-    class ReservationActionEditor extends DefaultCellEditor {
-        protected JButton button;
-        private String label;
-        private boolean isPushed;
-        private JTable table;
-        private int currentRow;
-
-        public ReservationActionEditor(JCheckBox checkBox, JTable table) {
-            super(checkBox);
-            this.table = table;
-            button = new JButton();
-            button.setOpaque(true);
-            button.addActionListener(e -> fireEditingStopped());
-        }
-
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
-                int column) {
-            label = (value == null) ? "Zrealizuj" : value.toString();
-            button.setText(label);
-            isPushed = true;
-            currentRow = row;
-            return button;
-        }
-
-        public Object getCellEditorValue() {
-            if (isPushed) {
-                int resId = (Integer) table.getValueAt(currentRow, 0);
-                // "Realize" means basically update status to "Zrealizowana" and maybe Create
-                // Loan?
-                // For MVP, just update status.
-                rezerwacjaDAO.updateReservationStatus(resId, "Zrealizowana");
-                JOptionPane.showMessageDialog(button, "Rezerwacja oznaczona jako zrealizowana!");
-                table.setValueAt("Zrealizowana", currentRow, 4);
-            }
-            isPushed = false;
-            return label;
-        }
-
-        public boolean stopCellEditing() {
-            isPushed = false;
-            return super.stopCellEditing();
-        }
     }
 }

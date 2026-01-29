@@ -6,7 +6,6 @@ import org.example.library.model.Ksiazka;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.util.List;
@@ -15,18 +14,16 @@ import java.util.stream.Collectors;
 public class BookManagementPanel extends JPanel {
     private JTable bookTable;
     private KsiazkaDAO ksiazkaDAO;
-    private List<Ksiazka> allBooks; // Przechowujemy wszystkie książki do filtrowania
+    private List<Ksiazka> allBooks;
     private JTextField searchField;
 
     public BookManagementPanel() {
         this.ksiazkaDAO = new KsiazkaDAO();
 
-        // Ustawienia głównego panelu (białe tło, marginesy)
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // --- SZARY KONTENER ---
         JPanel grayPanel = new JPanel(new BorderLayout());
         grayPanel.setBackground(new Color(230, 230, 230));
         grayPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -34,7 +31,6 @@ public class BookManagementPanel extends JPanel {
                 new EmptyBorder(20, 20, 20, 20)
         ));
 
-        // --- GÓRA: TYTUŁ I WYSZUKIWARKA ---
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(new Color(230, 230, 230));
         topPanel.setBorder(new EmptyBorder(0, 0, 20, 0));
@@ -43,13 +39,11 @@ public class BookManagementPanel extends JPanel {
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         topPanel.add(titleLabel, BorderLayout.WEST);
 
-        // Panel wyszukiwania (po prawej)
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         searchPanel.setBackground(new Color(230, 230, 230));
 
         searchField = new JTextField(15);
         searchField.setText("Wyszukaj...");
-        // Czyścimy pole po kliknięciu
         searchField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusGained(java.awt.event.FocusEvent evt) {
                 if (searchField.getText().equals("Wyszukaj...")) {
@@ -68,7 +62,6 @@ public class BookManagementPanel extends JPanel {
 
         grayPanel.add(topPanel, BorderLayout.NORTH);
 
-        // --- ŚRODEK: TABELA ---
         bookTable = new JTable();
         bookTable.setRowHeight(35);
         bookTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -76,10 +69,8 @@ public class BookManagementPanel extends JPanel {
         JScrollPane scrollPane = new JScrollPane(bookTable);
         grayPanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Dodajemy szary panel do głównego widoku
         add(grayPanel, BorderLayout.CENTER);
 
-        // --- DÓŁ: PRZYCISKI FUNKCYJNE ---
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         bottomPanel.setBackground(Color.WHITE);
 
@@ -98,7 +89,6 @@ public class BookManagementPanel extends JPanel {
 
         add(bottomPanel, BorderLayout.SOUTH);
 
-        // Załaduj dane przy starcie
         loadBooks();
     }
 
@@ -135,7 +125,7 @@ public class BookManagementPanel extends JPanel {
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4 || column == 5; // Tylko przyciski są aktywne
+                return column == 4 || column == 5;
             }
         };
 
@@ -151,7 +141,6 @@ public class BookManagementPanel extends JPanel {
         }
         bookTable.setModel(model);
 
-        // Konfiguracja przycisków w tabeli
         bookTable.getColumn("Usuń").setCellRenderer(new ButtonRenderer());
         bookTable.getColumn("Usuń").setCellEditor(new DeleteButtonEditor(new JCheckBox()));
 
@@ -159,17 +148,16 @@ public class BookManagementPanel extends JPanel {
         bookTable.getColumn("Edytuj").setCellEditor(new EditButtonEditor(new JCheckBox()));
     }
 
-    // --- Logika dodawania książki ---
+    // --- LOGIKA DODAWANIA KSIĄŻKI ---
     private void showAddBookDialog() {
-        // Otwieramy okno dodawania
-        AddBookDialog dialog = new AddBookDialog((Frame) SwingUtilities.getWindowAncestor(this));
+        // ZMIANA: Pobieramy Window i przekazujemy bez rzutowania na Frame
+        Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        AddBookDialog dialog = new AddBookDialog(parentWindow);
         dialog.setVisible(true);
 
-        // Po zamknięciu odświeżamy tabelę
         loadBooks();
     }
 
-    // --- Klasa Renderera (Wygląd przycisku) ---
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
             setOpaque(true);
@@ -182,7 +170,6 @@ public class BookManagementPanel extends JPanel {
         }
     }
 
-    // --- Obsługa przycisku USUŃ ---
     class DeleteButtonEditor extends DefaultCellEditor {
         protected JButton button;
         private String label;
@@ -209,7 +196,6 @@ public class BookManagementPanel extends JPanel {
         @Override
         public Object getCellEditorValue() {
             if (isPushed) {
-                // Pobieramy ISBN z wiersza
                 String isbn = (String) bookTable.getValueAt(currentRow, 3);
                 int confirm = JOptionPane.showConfirmDialog(button,
                         "Czy na pewno usunąć książkę o ISBN: " + isbn + "?",
@@ -217,7 +203,7 @@ public class BookManagementPanel extends JPanel {
 
                 if (confirm == JOptionPane.YES_OPTION) {
                     ksiazkaDAO.deleteKsiazka(isbn);
-                    loadBooks(); // Odśwież tabelę
+                    loadBooks();
                 }
             }
             isPushed = false;
@@ -231,7 +217,6 @@ public class BookManagementPanel extends JPanel {
         }
     }
 
-    // --- Obsługa przycisku EDYTUJ ---
     class EditButtonEditor extends DefaultCellEditor {
         protected JButton button;
         private String label;
@@ -259,16 +244,11 @@ public class BookManagementPanel extends JPanel {
         public Object getCellEditorValue() {
             if (isPushed) {
                 String isbn = (String) bookTable.getValueAt(currentRow, 3);
-
-                // Otwieramy okno edycji
                 Window parentWindow = SwingUtilities.getWindowAncestor(button);
-                if (parentWindow instanceof Frame) {
-                    new EditBookDialog((Frame) parentWindow, isbn).setVisible(true);
-                } else {
-                    new EditBookDialog(null, isbn).setVisible(true);
-                }
 
-                // Po zamknięciu odświeżamy tabelę
+                // ZMIANA: Obsługa Edycji również z poprawionym konstruktorem EditBookDialog (jeśli go zaktualizowałeś)
+                new EditBookDialog(parentWindow, isbn).setVisible(true);
+
                 loadBooks();
             }
             isPushed = false;

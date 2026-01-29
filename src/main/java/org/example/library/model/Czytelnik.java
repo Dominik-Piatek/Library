@@ -1,6 +1,7 @@
 package org.example.library.model;
 
-public class Czytelnik {
+// WAŻNE: Dodano "extends Uzytkownik"
+public class Czytelnik extends Uzytkownik {
     private int id_Czytelnika;
     private String imie;
     private String nazwisko;
@@ -8,10 +9,17 @@ public class Czytelnik {
     private String email;
     private String hasloSkrot;
 
-    public Czytelnik() {}
+    public Czytelnik() {
+        // Pusty konstruktor dla bezpieczeństwa
+        super(0, "", "", "Czytelnik");
+    }
 
-    // Konstruktor GŁÓWNY (używany przez DAO przy pobieraniu z bazy)
+    // Konstruktor GŁÓWNY (używany przez DAO)
     public Czytelnik(int id_Czytelnika, String imie, String nazwisko, String nrTelefonu, String email, String hasloSkrot) {
+        // Przekazujemy dane do klasy nadrzędnej (Uzytkownik):
+        // ID, Login (tu Email), Hasło, Rola ("Czytelnik")
+        super(id_Czytelnika, email, hasloSkrot, "Czytelnik");
+
         this.id_Czytelnika = id_Czytelnika;
         this.imie = imie;
         this.nazwisko = nazwisko;
@@ -20,10 +28,11 @@ public class Czytelnik {
         this.hasloSkrot = hasloSkrot;
     }
 
-    // Konstruktor POMOCNICZY (dla Twoich okienek - LoginFrame itp.)
-    // Przyjmuje dane bez ID na początku, a na końcu ignoruje stare ID pracownika
+    // Konstruktor POMOCNICZY (dla okienek)
     public Czytelnik(String imie, String nazwisko, String nrTelefonu, String email, String hasloSkrot, int ignorowaneId) {
-        this.id_Czytelnika = 0; // Baza sama nada ID
+        super(0, email, hasloSkrot, "Czytelnik");
+
+        this.id_Czytelnika = 0;
         this.imie = imie;
         this.nazwisko = nazwisko;
         this.nrTelefonu = nrTelefonu;
@@ -32,6 +41,7 @@ public class Czytelnik {
     }
 
     // Gettery i Settery
+    @Override
     public int getId() { return id_Czytelnika; }
     public void setId(int id) { this.id_Czytelnika = id; }
 

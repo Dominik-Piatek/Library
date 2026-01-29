@@ -1,9 +1,11 @@
 package org.example.library.view;
 
-import javax.swing.*;
-import java.awt.*;
 import org.example.library.dao.CzytelnikDAO;
 import org.example.library.model.Czytelnik;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
 
 public class LoginFrame extends JFrame {
     private JTextField loginField;
@@ -13,72 +15,89 @@ public class LoginFrame extends JFrame {
 
     public LoginFrame() {
         setTitle("System Biblioteczny - Autoryzacja");
-        setSize(400, 380); // Increased height for register button
+        setSize(800, 600); // Duże okno, żeby panel był na środku
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setResizable(false);
+        setLocationRelativeTo(null); // Wyśrodkowanie okna na ekranie
+
+        // Główny layout okna - GridBagLayout pozwala wyśrodkować mniejszy panel w dużym oknie
+        setLayout(new GridBagLayout());
+        getContentPane().setBackground(Color.WHITE); // Białe tło dookoła
 
         initComponents();
     }
 
     private void initComponents() {
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(236, 240, 241));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
+        // --- SZARY KONTENER (RAMKA LOGOWANIA) ---
+        JPanel loginPanel = new JPanel();
+        loginPanel.setLayout(new BoxLayout(loginPanel, BoxLayout.Y_AXIS));
+        loginPanel.setBackground(new Color(230, 230, 230)); // Jasnoszary
+        loginPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(Color.BLACK, 1), // Czarna ramka
+                new EmptyBorder(40, 60, 40, 60) // Marginesy wewnątrz
+        ));
 
-        JLabel titleLabel = new JLabel("Dostęp do Biblioteki");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(44, 62, 80));
+        // Tytuł "Logowanie"
+        JLabel titleLabel = new JLabel("Logowanie");
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 28)); // Styl jak na makiecie
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(titleLabel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 25)));
+        loginPanel.add(titleLabel);
+        loginPanel.add(Box.createRigidArea(new Dimension(0, 40))); // Odstęp
 
-        JLabel loginLabel = new JLabel("Login / Email");
-        loginLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(loginLabel);
+        // Pole: login/email
+        loginField = new JTextField();
+        loginPanel.add(createLabeledRow("login/email:", loginField));
+        loginPanel.add(Box.createRigidArea(new Dimension(0, 15)));
 
-        loginField = new JTextField(15);
-        loginField.setMaximumSize(new Dimension(300, 30));
-        mainPanel.add(loginField);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        // Pole: hasło
+        passwordField = new JPasswordField();
+        loginPanel.add(createLabeledRow("hasło:", passwordField));
+        loginPanel.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        JLabel passLabel = new JLabel("Hasło");
-        passLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(passLabel);
-
-        passwordField = new JPasswordField(15);
-        passwordField.setMaximumSize(new Dimension(300, 30));
-        mainPanel.add(passwordField);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-
-        loginButton = new JButton("Zaloguj");
-        loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        loginButton.setBackground(new Color(52, 152, 219));
-        loginButton.setForeground(Color.WHITE);
+        // Przycisk Zaloguj
+        loginButton = new JButton("zaloguj");
+        loginButton.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         loginButton.setFocusPainted(false);
-        loginButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        loginButton.setMaximumSize(new Dimension(150, 35));
+        loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        loginButton.setPreferredSize(new Dimension(150, 40));
+        loginButton.setMaximumSize(new Dimension(150, 40));
+        loginPanel.add(loginButton);
 
-        mainPanel.add(loginButton);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-
+        // Opcjonalnie: Przycisk rejestracji (dla czytelników)
+        loginPanel.add(Box.createRigidArea(new Dimension(0, 15)));
         registerButton = new JButton("Załóż konto");
-        registerButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        registerButton.setBackground(new Color(46, 204, 113));
-        registerButton.setForeground(Color.WHITE);
-        registerButton.setFocusPainted(false);
         registerButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        registerButton.setMaximumSize(new Dimension(150, 30));
+        registerButton.setBorderPainted(false);
+        registerButton.setContentAreaFilled(false);
+        registerButton.setForeground(Color.BLUE);
+        registerButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        registerButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         registerButton.addActionListener(e -> showRegistrationDialog());
+        loginPanel.add(registerButton);
 
-        mainPanel.add(registerButton);
-
-        add(mainPanel);
+        // Dodanie panelu do okna
+        add(loginPanel);
     }
 
+    // Metoda pomocnicza tworząca wiersz: Etykieta (po lewej) + Pole (po prawej)
+    private JPanel createLabeledRow(String labelText, JComponent field) {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        panel.setBackground(new Color(230, 230, 230)); // Tło zgodne z kontenerem
+        panel.setMaximumSize(new Dimension(400, 35));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+
+        field.setPreferredSize(new Dimension(200, 30));
+        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        panel.add(label);
+        panel.add(field);
+        return panel;
+    }
+
+    // --- Okno rejestracji (dla czytelnika) ---
     private void showRegistrationDialog() {
-        JDialog dialog = new JDialog(this, "Rejestracja Nowego Czytelnika", true);
+        JDialog dialog = new JDialog(this, "Rejestracja", true);
         dialog.setLayout(new GridLayout(6, 2, 10, 10));
         dialog.setSize(350, 300);
         dialog.setLocationRelativeTo(this);
@@ -89,37 +108,27 @@ public class LoginFrame extends JFrame {
         JTextField emailField = new JTextField();
         JPasswordField passField = new JPasswordField();
 
-        dialog.add(new JLabel("  Imię:"));
-        dialog.add(nameField);
-        dialog.add(new JLabel("  Nazwisko:"));
-        dialog.add(surnameField);
-        dialog.add(new JLabel("  Telefon:"));
-        dialog.add(phoneField);
-        dialog.add(new JLabel("  Email:"));
-        dialog.add(emailField);
-        dialog.add(new JLabel("  Hasło:"));
-        dialog.add(passField);
+        dialog.add(new JLabel("  Imię:")); dialog.add(nameField);
+        dialog.add(new JLabel("  Nazwisko:")); dialog.add(surnameField);
+        dialog.add(new JLabel("  Telefon:")); dialog.add(phoneField);
+        dialog.add(new JLabel("  Email:")); dialog.add(emailField);
+        dialog.add(new JLabel("  Hasło:")); dialog.add(passField);
 
         JButton submitButton = new JButton("Zarejestruj");
         submitButton.addActionListener(ev -> {
             try {
-                // Validate
-                if (nameField.getText().isEmpty() || surnameField.getText().isEmpty()
-                        || emailField.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(dialog, "Wypełnij wymagane pola!");
+                if (emailField.getText().isEmpty() || new String(passField.getPassword()).isEmpty()) {
+                    JOptionPane.showMessageDialog(dialog, "Email i hasło są wymagane!");
                     return;
                 }
-
                 CzytelnikDAO dao = new CzytelnikDAO();
-                // Check if exists? (Optional)
-
                 Czytelnik c = new Czytelnik(
                         nameField.getText(),
                         surnameField.getText(),
                         phoneField.getText(),
                         emailField.getText(),
                         new String(passField.getPassword()),
-                        1 // Default assigned to Admin ID 1 for now
+                        1 // Domyślne ID pracownika tworzącego konto (np. system/admin)
                 );
                 dao.addCzytelnik(c);
                 JOptionPane.showMessageDialog(dialog, "Konto utworzone! Możesz się zalogować.");
@@ -130,20 +139,13 @@ public class LoginFrame extends JFrame {
         });
 
         dialog.add(new JLabel(""));
-        dialog.add(submitButton); // Center button?
-
+        dialog.add(submitButton);
         dialog.setVisible(true);
     }
 
-    public JTextField getLoginField() {
-        return loginField;
-    }
-
-    public JPasswordField getPasswordField() {
-        return passwordField;
-    }
-
-    public JButton getLoginButton() {
-        return loginButton;
-    }
+    // --- Gettery dla Kontrolera ---
+    public JTextField getLoginField() { return loginField; }
+    public JPasswordField getPasswordField() { return passwordField; }
+    public JButton getLoginButton() { return loginButton; }
+    public JButton getRegisterButton() { return registerButton; }
 }

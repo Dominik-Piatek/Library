@@ -1,6 +1,7 @@
 package org.example.library.model;
 
-public class Pracownik {
+// WAŻNE: Dodano "extends Uzytkownik"
+public class Pracownik extends Uzytkownik {
     private int id_Pracownika;
     private String imie;
     private String nazwisko;
@@ -8,10 +9,15 @@ public class Pracownik {
     private String hasloSkrot;
     private String rola;
 
-    public Pracownik() {}
+    public Pracownik() {
+        super(0, "", "", "");
+    }
 
     // Konstruktor GŁÓWNY (dla DAO)
     public Pracownik(int id_Pracownika, String imie, String nazwisko, String login, String hasloSkrot, String rola) {
+        // Przekazujemy dane do klasy nadrzędnej (Uzytkownik)
+        super(id_Pracownika, login, hasloSkrot, rola);
+
         this.id_Pracownika = id_Pracownika;
         this.imie = imie;
         this.nazwisko = nazwisko;
@@ -21,9 +27,10 @@ public class Pracownik {
     }
 
     // Konstruktor POMOCNICZY (dla okienek)
-    // Pasuje do: new Pracownik(imie, nazwisko, login, haslo, rola, jakieśId)
     public Pracownik(String imie, String nazwisko, String login, String hasloSkrot, String rola, int ignorowaneId) {
-        this.id_Pracownika = 0; // Baza sama nada ID
+        super(0, login, hasloSkrot, rola);
+
+        this.id_Pracownika = 0;
         this.imie = imie;
         this.nazwisko = nazwisko;
         this.login = login;
@@ -32,6 +39,7 @@ public class Pracownik {
     }
 
     // Gettery i Settery
+    @Override
     public int getId() { return id_Pracownika; }
     public void setId(int id) { this.id_Pracownika = id; }
 
@@ -41,12 +49,14 @@ public class Pracownik {
     public String getNazwisko() { return nazwisko; }
     public void setNazwisko(String nazwisko) { this.nazwisko = nazwisko; }
 
+    @Override
     public String getLogin() { return login; }
     public void setLogin(String login) { this.login = login; }
 
     public String getHasloSkrot() { return hasloSkrot; }
     public void setHasloSkrot(String hasloSkrot) { this.hasloSkrot = hasloSkrot; }
 
+    @Override
     public String getRola() { return rola; }
     public void setRola(String rola) { this.rola = rola; }
 }
