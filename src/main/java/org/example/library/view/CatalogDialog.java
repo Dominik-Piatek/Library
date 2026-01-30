@@ -20,7 +20,9 @@ public class CatalogDialog extends JDialog {
     private KsiazkaDAO ksiazkaDAO;
     private RezerwacjaDAO rezerwacjaDAO;
     private Czytelnik currentUser;
-    private List<Ksiazka> allBooks;
+
+    // Zmieniono nazwę listy na bardziej adekwatną
+    private List<Ksiazka> availableBooks;
     private JTextField searchField;
 
     public CatalogDialog(Frame owner, Czytelnik user) {
@@ -32,7 +34,7 @@ public class CatalogDialog extends JDialog {
         setSize(900, 700);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
-        getContentPane().setBackground(Color.WHITE); // Białe tło główne
+        getContentPane().setBackground(Color.WHITE);
 
         // --- GÓRNY NAGŁÓWEK ---
         JLabel mainTitle = new JLabel("Wypożyczalnia książek");
@@ -41,14 +43,13 @@ public class CatalogDialog extends JDialog {
         add(mainTitle, BorderLayout.NORTH);
 
         // --- GŁÓWNY PANEL (Center) ---
-        // To jest ten duży panel zawierający szary prostokąt
         JPanel centerContainer = new JPanel(new BorderLayout());
         centerContainer.setBackground(Color.WHITE);
-        centerContainer.setBorder(new EmptyBorder(0, 30, 20, 30)); // Marginesy od krawędzi okna
+        centerContainer.setBorder(new EmptyBorder(0, 30, 20, 30));
 
         // --- SZARY KONTENER WEWNĘTRZNY ---
         JPanel grayPanel = new JPanel(new BorderLayout());
-        grayPanel.setBackground(new Color(230, 230, 230)); // Szare tło
+        grayPanel.setBackground(new Color(230, 230, 230));
         grayPanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(Color.BLACK, 1),
                 new EmptyBorder(20, 20, 20, 20)
@@ -86,14 +87,14 @@ public class CatalogDialog extends JDialog {
 
         // -- Tabela --
         bookTable = new JTable();
-        bookTable.setRowHeight(35); // Wysokie wiersze
+        bookTable.setRowHeight(35);
         bookTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         grayPanel.add(new JScrollPane(bookTable), BorderLayout.CENTER);
 
         centerContainer.add(grayPanel, BorderLayout.CENTER);
 
-        // -- Przycisk Powrotu (Na dole, po prawej, pod szarym panelem) --
+        // -- Przycisk Powrotu --
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomPanel.setBackground(Color.WHITE);
         bottomPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
@@ -108,23 +109,27 @@ public class CatalogDialog extends JDialog {
 
         add(centerContainer, BorderLayout.CENTER);
 
-        // Załadowanie danych
         loadBooks();
     }
 
     private void loadBooks() {
-        allBooks = ksiazkaDAO.getAllKsiazki();
-        updateTable(allBooks);
+        // ZMIANA: Używamy metody pobierającej TYLKO dostępne książki
+        availableBooks = ksiazkaDAO.getOnlyAvailableBooks();
+
+        if (availableBooks.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Brak dostępnych książek w bibliotece.");
+        }
+        updateTable(availableBooks);
     }
 
     private void filterBooks() {
         String query = searchField.getText().toLowerCase();
         if (query.equals("wyszukaj...") || query.isEmpty()) {
-            updateTable(allBooks);
+            updateTable(availableBooks);
             return;
         }
 
-        List<Ksiazka> filtered = allBooks.stream()
+        List<Ksiazka> filtered = availableBooks.stream()
                 .filter(b -> b.getTytul().toLowerCase().contains(query) ||
                         b.getAutor().toLowerCase().contains(query) ||
                         b.getGatunek().toLowerCase().contains(query))
@@ -133,13 +138,12 @@ public class CatalogDialog extends JDialog {
     }
 
     private void updateTable(List<Ksiazka> books) {
-        // Kolumny zgodne z Twoim rysunkiem
         String[] columns = { "Tytuł", "Autor", "Rok wydania", "Gatunek", "Wypożycz" };
 
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 4; // Tylko przycisk
+                return column == 4;
             }
         };
 
@@ -154,17 +158,16 @@ public class CatalogDialog extends JDialog {
         }
         bookTable.setModel(model);
 
-        // Konfiguracja przycisku "Wypożycz"
         bookTable.getColumn("Wypożycz").setCellRenderer(new ButtonRenderer());
         bookTable.getColumn("Wypożycz").setCellEditor(new ButtonEditor(new JCheckBox()));
     }
 
     private void performReservation(int row) {
-        // Pobieramy książkę z aktualnie wyświetlanej listy w tabeli
+        // Pobieramy tytuł z tabeli (uwaga: jeśli są duplikaty tytułów, lepiej użyć ukrytej kolumny ISBN, ale tu upraszczamy)
         String tytul = (String) bookTable.getValueAt(row, 0);
 
-        // Znajdujemy ISBN na podstawie tytułu (uproszczenie, w idealnym świecie mamy ukrytą kolumnę ID/ISBN)
-        Ksiazka selectedBook = allBooks.stream()
+        // Szukamy książki w liście `availableBooks` (nie `allBooks`)
+        Ksiazka selectedBook = availableBooks.stream()
                 .filter(b -> b.getTytul().equals(tytul))
                 .findFirst()
                 .orElse(null);
@@ -174,13 +177,11 @@ public class CatalogDialog extends JDialog {
                 JOptionPane.showMessageDialog(this, "Masz już aktywną rezerwację na tę książkę.");
                 return;
             }
-            // Dodajemy rezerwację
             rezerwacjaDAO.addRezerwacja(currentUser.getId(), selectedBook.getIsbn());
             JOptionPane.showMessageDialog(this, "Książka została zarezerwowana! Odbierz ją w bibliotece.");
         }
     }
 
-    // --- RENDERER PRZYCISKU ---
     class ButtonRenderer extends JButton implements TableCellRenderer {
         public ButtonRenderer() {
             setOpaque(true);
@@ -193,7 +194,6 @@ public class CatalogDialog extends JDialog {
         }
     }
 
-    // --- EDYTOR PRZYCISKU (OBSŁUGA KLIKNIĘCIA) ---
     class ButtonEditor extends DefaultCellEditor {
         protected JButton button;
         private String label;

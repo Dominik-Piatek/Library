@@ -1,148 +1,212 @@
 package org.example.library.view;
 
+import org.example.library.dao.EgzemplarzDAO;
 import org.example.library.dao.KsiazkaDAO;
+import org.example.library.model.Egzemplarz;
 import org.example.library.model.Ksiazka;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.util.List;
 import java.util.Optional;
 
 public class EditBookDialog extends JDialog {
 
+    // Pola formularza
     private JTextField titleField;
     private JTextField authorField;
     private JTextField isbnField;
     private JTextField yearField;
-    private JTextField genreField; // Gatunek
-    private JTextField categoryField; // Dziedzina
+    private JTextField genreField;
+    private JTextField categoryField;
+
+    // Label do wyświetlania licznika (to nowość z mockupu)
+    private JLabel copiesCountLabel;
 
     private String originalIsbn;
+    private Ksiazka bookToEdit;
+
+    // DAO
+    private KsiazkaDAO ksiazkaDAO;
+    private EgzemplarzDAO egzemplarzDAO;
 
     public EditBookDialog(Window owner, String isbn) {
         super(owner, "Edycja książki", ModalityType.APPLICATION_MODAL);
         this.originalIsbn = isbn;
-        setSize(500, 550);
+        this.ksiazkaDAO = new KsiazkaDAO();
+        this.egzemplarzDAO = new EgzemplarzDAO();
+
+        // 1. Najpierw pobieramy dane książki z bazy
+        loadBookData();
+
+        setSize(550, 600);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(230, 230, 230));
-        mainPanel.setBorder(new EmptyBorder(20, 50, 20, 50));
+        // --- NAGŁÓWEK ---
+        JLabel headerLabel = new JLabel("Edytuj dane książki");
+        headerLabel.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        headerLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        headerLabel.setBorder(new EmptyBorder(20, 0, 20, 0));
+        add(headerLabel, BorderLayout.NORTH);
 
-        JLabel titleLabel = new JLabel("Edytuj dane książki");
-        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 24));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        mainPanel.add(titleLabel);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        // --- FORMULARZ (GridBagLayout - dla równego układu) ---
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(new Color(230, 230, 230)); // Szare tło
+        formPanel.setBorder(new EmptyBorder(20, 40, 20, 40));
 
-        titleField = new JTextField();
-        authorField = new JTextField();
-        isbnField = new JTextField();
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Jeśli nie znaleziono książki (zabezpieczenie), tworzymy puste pola
+        String tytul = (bookToEdit != null) ? bookToEdit.getTytul() : "";
+        String autor = (bookToEdit != null) ? bookToEdit.getAutor() : "";
+        String rokWydania = (bookToEdit != null) ? String.valueOf(bookToEdit.getRokWydania()) : "";
+        String gatunek = (bookToEdit != null) ? bookToEdit.getGatunek() : "";
+        String dziedzina = (bookToEdit != null) ? bookToEdit.getDziedzina() : "";
+
+        // Wiersz 0: Tytuł
+        addFormRow(formPanel, gbc, 0, "Tytuł", titleField = new JTextField(tytul));
+
+        // Wiersz 1: Autor
+        addFormRow(formPanel, gbc, 1, "Autor", authorField = new JTextField(autor));
+
+        // Wiersz 2: ISBN (Read-only)
+        isbnField = new JTextField(originalIsbn);
         isbnField.setEditable(false);
-        isbnField.setBackground(new Color(210, 210, 210));
-        yearField = new JTextField();
-        genreField = new JTextField();
-        categoryField = new JTextField();
+        isbnField.setBackground(new Color(210, 210, 210)); // Ciemniejszy szary
+        addFormRow(formPanel, gbc, 2, "ISBN", isbnField);
 
-        mainPanel.add(createLabeledField("Tytuł", titleField));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createLabeledField("Autor", authorField));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createLabeledField("ISBN", isbnField));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createLabeledField("Rok wydania", yearField));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createLabeledField("Gatunek", genreField));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        mainPanel.add(createLabeledField("Dziedzina", categoryField));
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        // Wiersz 3: Rok wydania
+        addFormRow(formPanel, gbc, 3, "Rok wydania", yearField = new JTextField(rokWydania));
 
-        // Przycisk "Edytuj egzemplarze"
-        JButton editCopiesButton = new JButton("Edytuj egzemplarze");
-        editCopiesButton.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        editCopiesButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        editCopiesButton.addActionListener(e -> openEditCopiesDialog());
-        mainPanel.add(editCopiesButton);
-        mainPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        // Wiersz 4: Gatunek
+        addFormRow(formPanel, gbc, 4, "Gatunek", genreField = new JTextField(gatunek));
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 20, 0));
+        // Wiersz 5: Dziedzina
+        addFormRow(formPanel, gbc, 5, "Dziedzina", categoryField = new JTextField(dziedzina));
+
+        // Wiersz 6: EGZEMPLARZE (Zgodnie z mockupem)
+        gbc.gridx = 0; gbc.gridy = 6;
+        gbc.weightx = 0.0;
+        JLabel copyLabel = new JLabel("Egzemplarze");
+        copyLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        formPanel.add(copyLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1.0;
+        // Panel wewnętrzny dla licznika i przycisku
+        JPanel copyActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        copyActionPanel.setBackground(new Color(230, 230, 230)); // Dopasowanie tła
+
+        copiesCountLabel = new JLabel("dostępne .../...");
+        copiesCountLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JButton editCopiesBtn = new JButton("edytuj");
+        editCopiesBtn.setFocusPainted(false);
+        editCopiesBtn.setPreferredSize(new Dimension(80, 25));
+        editCopiesBtn.addActionListener(e -> openEditCopiesDialog());
+
+        copyActionPanel.add(copiesCountLabel);
+        copyActionPanel.add(editCopiesBtn);
+
+        formPanel.add(copyActionPanel, gbc);
+
+        add(formPanel, BorderLayout.CENTER);
+
+        // --- PRZYCISKI DOLNE ---
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
         buttonPanel.setBackground(new Color(230, 230, 230));
 
-        JButton cancelButton = createButton("Anuluj");
-        cancelButton.addActionListener(e -> dispose());
+        JButton cancelBtn = new JButton("Anuluj");
+        cancelBtn.setPreferredSize(new Dimension(100, 35));
+        cancelBtn.addActionListener(e -> dispose());
 
-        JButton confirmButton = createButton("Zatwierdź");
-        confirmButton.addActionListener(e -> saveChanges());
+        JButton saveBtn = new JButton("Zatwierdź");
+        saveBtn.setPreferredSize(new Dimension(100, 35));
+        saveBtn.addActionListener(e -> saveChanges());
 
-        buttonPanel.add(cancelButton);
-        buttonPanel.add(confirmButton);
+        buttonPanel.add(cancelBtn);
+        buttonPanel.add(saveBtn);
 
-        mainPanel.add(buttonPanel);
-        add(mainPanel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
 
-        loadData();
+        // Na koniec odświeżamy licznik egzemplarzy
+        refreshCopiesCount();
     }
 
-    private void loadData() {
-        KsiazkaDAO dao = new KsiazkaDAO();
-        Optional<Ksiazka> bookOpt = dao.getAllKsiazki().stream()
+    private void loadBookData() {
+        Optional<Ksiazka> bookOpt = ksiazkaDAO.getAllKsiazki().stream()
                 .filter(k -> k.getIsbn().equals(originalIsbn))
                 .findFirst();
 
         if (bookOpt.isPresent()) {
-            Ksiazka k = bookOpt.get();
-            titleField.setText(k.getTytul());
-            authorField.setText(k.getAutor());
-            isbnField.setText(k.getIsbn());
-            yearField.setText(String.valueOf(k.getRokWydania()));
-            genreField.setText(k.getGatunek());
-            categoryField.setText(k.getDziedzina());
+            this.bookToEdit = bookOpt.get();
+        } else {
+            JOptionPane.showMessageDialog(this, "Błąd: Nie znaleziono książki o podanym ISBN.");
+            dispose();
         }
+    }
+
+    // Metoda pomocnicza do budowania wierszy (Label + TextField)
+    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JComponent field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.0;
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        panel.add(label, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        field.setPreferredSize(new Dimension(200, 30));
+        panel.add(field, gbc);
+    }
+
+    // Oblicza ile jest dostępnych / wszystkich egzemplarzy
+    private void refreshCopiesCount() {
+        List<Egzemplarz> copies = egzemplarzDAO.getEgzemplarzeByIsbn(originalIsbn);
+        long total = copies.size();
+        long available = copies.stream()
+                .filter(e -> "Dostępna".equalsIgnoreCase(e.getStatusWypozyczenia()))
+                .count();
+
+        copiesCountLabel.setText("dostępne " + available + "/" + total);
+    }
+
+    private void openEditCopiesDialog() {
+        // Otwiera okno zarządzania egzemplarzami
+        CopyManagementDialog dialog = new CopyManagementDialog(this, originalIsbn);
+        dialog.setVisible(true);
+
+        // Po zamknięciu tamtego okna, odświeżamy licznik tutaj
+        refreshCopiesCount();
     }
 
     private void saveChanges() {
         try {
             int year = Integer.parseInt(yearField.getText());
 
-            KsiazkaDAO dao = new KsiazkaDAO();
+            // Tworzymy obiekt z nowymi danymi (zachowując stary ISBN i ID pracownika)
             Ksiazka k = new Ksiazka(
-                    originalIsbn, 
-                    titleField.getText(), 
-                    authorField.getText(), 
-                    genreField.getText(), 
-                    year, 
-                    categoryField.getText(), 
-                    1 // Default PracownikID
+                    originalIsbn,
+                    titleField.getText(),
+                    authorField.getText(),
+                    genreField.getText(),
+                    year,
+                    categoryField.getText(),
+                    bookToEdit != null ? bookToEdit.getPracownikId() : 1
             );
-            dao.updateKsiazka(k);
+
+            ksiazkaDAO.updateKsiazka(k);
 
             JOptionPane.showMessageDialog(this, "Dane zaktualizowane!");
             dispose();
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Rok wydania musi być liczbą!", "Błąd", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Błąd zapisu: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Błąd zapisu: " + e.getMessage(), "Błąd", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void openEditCopiesDialog() {
-        new CopyManagementDialog(this, originalIsbn).setVisible(true);
-    }
-
-    private JPanel createLabeledField(String labelText, JComponent field) {
-        JPanel panel = new JPanel(new BorderLayout(5, 5));
-        panel.setBackground(new Color(230, 230, 230));
-        panel.setMaximumSize(new Dimension(400, 35));
-        JLabel label = new JLabel(labelText);
-        label.setPreferredSize(new Dimension(100, 30));
-        panel.add(label, BorderLayout.WEST);
-        panel.add(field, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JButton createButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setPreferredSize(new Dimension(100, 30));
-        return btn;
     }
 }

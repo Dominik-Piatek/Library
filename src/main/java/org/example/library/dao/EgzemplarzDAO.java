@@ -30,7 +30,24 @@ public class EgzemplarzDAO {
         return egzemplarze;
     }
 
-    // NOWA METODA: Wyszukiwanie po kodzie kreskowym (skaner)
+    // --- TEJ METODY BRAKOWAŁO ---
+    public List<Egzemplarz> getEgzemplarzeByIsbn(String isbn) {
+        List<Egzemplarz> list = new ArrayList<>();
+        String sql = "SELECT * FROM Egzemplarz WHERE KsiazkaISBN = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, isbn);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                list.add(mapRowToEgzemplarz(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+    // -----------------------------
+
     public Optional<Egzemplarz> getEgzemplarzByKod(String kod) {
         String sql = "SELECT * FROM Egzemplarz WHERE Kod_kreskowy = ?";
         try (Connection conn = DatabaseConnection.getConnection();
@@ -46,6 +63,7 @@ public class EgzemplarzDAO {
         return Optional.empty();
     }
 
+    // Metoda pomocnicza
     private Egzemplarz mapRowToEgzemplarz(ResultSet rs) throws SQLException {
         return new Egzemplarz(
                 rs.getInt("ID_Egzemplarza"),
@@ -53,7 +71,7 @@ public class EgzemplarzDAO {
                 rs.getInt("Lokalizacja_Regal"),
                 rs.getInt("Lokalizacja_Polka"),
                 rs.getString("Status_wypozyczenia"),
-                rs.getString("KsiazkaISBN") // Poprawiono nazwę kolumny (bez polskich znaków)
+                rs.getString("KsiazkaISBN")
         );
     }
 
@@ -63,6 +81,32 @@ public class EgzemplarzDAO {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, nowyStatus);
             pstmt.setInt(2, egzemplarzId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Metody update/delete jeśli są potrzebne w innych miejscach (CopyManagementDialog):
+    public void updateEgzemplarz(Egzemplarz egzemplarz) {
+        String sql = "UPDATE Egzemplarz SET Lokalizacja_Regal = ?, Lokalizacja_Polka = ?, Status_wypozyczenia = ? WHERE ID_Egzemplarza = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, egzemplarz.getLokalizacjaRegal());
+            pstmt.setInt(2, egzemplarz.getLokalizacjaPolka());
+            pstmt.setString(3, egzemplarz.getStatusWypozyczenia());
+            pstmt.setInt(4, egzemplarz.getId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteEgzemplarz(int id) {
+        String sql = "DELETE FROM Egzemplarz WHERE ID_Egzemplarza = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();

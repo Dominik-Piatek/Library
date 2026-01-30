@@ -14,7 +14,7 @@ public class KsiazkaDAO {
     public void addKsiazka(Ksiazka ksiazka) {
         String sql = "INSERT INTO Ksiazka(ISBN, Tytul, Autor, Gatunek, Rok_wydania, Dziedzina, PracownikID_Pracownika) VALUES(?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, ksiazka.getIsbn());
             pstmt.setString(2, ksiazka.getTytul());
             pstmt.setString(3, ksiazka.getAutor());
@@ -29,10 +29,9 @@ public class KsiazkaDAO {
     }
 
     public boolean addEgzemplarz(Egzemplarz egzemplarz) {
-        // Updated column name to KsiazkaISBN (ASCII)
         String sql = "INSERT INTO Egzemplarz(Kod_kreskowy, Lokalizacja_Regal, Lokalizacja_Polka, Status_wypozyczenia, KsiazkaISBN) VALUES(?, ?, ?, ?, ?)";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, egzemplarz.getKodKreskowy());
             pstmt.setInt(2, egzemplarz.getLokalizacjaRegal());
             pstmt.setInt(3, egzemplarz.getLokalizacjaPolka());
@@ -46,21 +45,35 @@ public class KsiazkaDAO {
         }
     }
 
+    // Pobiera WSZYSTKIE książki (dla Admina)
     public List<Ksiazka> getAllKsiazki() {
         List<Ksiazka> list = new ArrayList<>();
         String sql = "SELECT * FROM Ksiazka";
         try (Connection conn = DatabaseConnection.getConnection();
-                Statement stmt = conn.createStatement();
-                ResultSet rs = stmt.executeQuery(sql)) {
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
-                list.add(new Ksiazka(
-                        rs.getString("ISBN"),
-                        rs.getString("Tytul"),
-                        rs.getString("Autor"),
-                        rs.getString("Gatunek"),
-                        rs.getInt("Rok_wydania"),
-                        rs.getString("Dziedzina"),
-                        rs.getInt("PracownikID_Pracownika")));
+                list.add(mapRowToKsiazka(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    // NOWA METODA: Pobiera TYLKO książki, które mają dostępny egzemplarz (dla Czytelnika)
+    public List<Ksiazka> getOnlyAvailableBooks() {
+        List<Ksiazka> list = new ArrayList<>();
+        // Używamy DISTINCT, żeby książka nie wyświetlała się podwójnie, jeśli ma 2 dostępne egzemplarze
+        String sql = "SELECT DISTINCT k.* FROM Ksiazka k " +
+                "JOIN Egzemplarz e ON k.ISBN = e.KsiazkaISBN " +
+                "WHERE e.Status_wypozyczenia = 'Dostępna'";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(mapRowToKsiazka(rs));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -70,10 +83,9 @@ public class KsiazkaDAO {
 
     public List<Egzemplarz> getEgzemplarzeByIsbn(String isbn) {
         List<Egzemplarz> list = new ArrayList<>();
-        // Updated column name to KsiazkaISBN (ASCII)
         String sql = "SELECT * FROM Egzemplarz WHERE KsiazkaISBN = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, isbn);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -94,7 +106,7 @@ public class KsiazkaDAO {
     public Optional<Egzemplarz> getEgzemplarzByKod(String kod) {
         String sql = "SELECT * FROM Egzemplarz WHERE Kod_kreskowy = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, kod);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
@@ -115,7 +127,7 @@ public class KsiazkaDAO {
     public void updateStatusEgzemplarza(int id, String status) {
         String sql = "UPDATE Egzemplarz SET Status_wypozyczenia = ? WHERE ID_Egzemplarza = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, status);
             pstmt.setInt(2, id);
             pstmt.executeUpdate();
@@ -127,7 +139,7 @@ public class KsiazkaDAO {
     public void updateEgzemplarz(Egzemplarz egzemplarz) {
         String sql = "UPDATE Egzemplarz SET Lokalizacja_Regal = ?, Lokalizacja_Polka = ?, Status_wypozyczenia = ? WHERE ID_Egzemplarza = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, egzemplarz.getLokalizacjaRegal());
             pstmt.setInt(2, egzemplarz.getLokalizacjaPolka());
             pstmt.setString(3, egzemplarz.getStatusWypozyczenia());
@@ -141,7 +153,7 @@ public class KsiazkaDAO {
     public void deleteEgzemplarz(int id) {
         String sql = "DELETE FROM Egzemplarz WHERE ID_Egzemplarza = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
@@ -152,7 +164,7 @@ public class KsiazkaDAO {
     public void updateKsiazka(Ksiazka ksiazka) {
         String sql = "UPDATE Ksiazka SET Tytul=?, Autor=?, Gatunek=?, Rok_wydania=?, Dziedzina=? WHERE ISBN=?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, ksiazka.getTytul());
             pstmt.setString(2, ksiazka.getAutor());
             pstmt.setString(3, ksiazka.getGatunek());
@@ -168,11 +180,23 @@ public class KsiazkaDAO {
     public void deleteKsiazka(String isbn) {
         String sql = "DELETE FROM Ksiazka WHERE ISBN=?";
         try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, isbn);
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    // Metoda pomocnicza, żeby nie powielać kodu mapowania
+    private Ksiazka mapRowToKsiazka(ResultSet rs) throws SQLException {
+        return new Ksiazka(
+                rs.getString("ISBN"),
+                rs.getString("Tytul"),
+                rs.getString("Autor"),
+                rs.getString("Gatunek"),
+                rs.getInt("Rok_wydania"),
+                rs.getString("Dziedzina"),
+                rs.getInt("PracownikID_Pracownika"));
     }
 }
